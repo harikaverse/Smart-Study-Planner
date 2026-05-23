@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Study System</title>
+
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+body {
+    height: 100vh;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* HOME SCREEN */
+.home {
+    text-align: center;
+}
+
+/* 🔥 ANIMATED BUTTONS */
+.home button {
+    padding: 15px 25px;
+    margin: 15px;
+    font-size: 18px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    color: white;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    transition: all 0.3s ease;
+}
+
+.home button:hover {
+    transform: translateY(-5px) scale(1.05);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+}
+
+.home button:active {
+    transform: scale(0.95);
+}
+
+/* COMMON CONTAINER */
+.container {
+    background: white;
+    padding: 25px;
+    width: 700px; /* wider for horizontal layout */
+    border-radius: 20px;
+    box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+    text-align: center;
+}
+
+/* BREAK REMINDER */
+.timer {
+    font-size: 60px;
+    font-weight: bold;
+    color: #667eea;
+    margin: 20px 0;
+}
+
+.controls button {
+    padding: 10px 20px;
+    margin: 8px;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    cursor: pointer;
+    color: white;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+}
+
+.settings input {
+    width: 60px;
+    padding: 5px;
+    margin: 5px;
+}
+
+/* 🔥 HORIZONTAL PLANNER GRID */
+.planner-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-top: 10px;
+}
+
+input {
+    width: 100%;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+}
+
+.plan-btn {
+    grid-column: span 2;
+    background: linear-gradient(135deg, #ff7e5f, #feb47b);
+}
+
+.section {
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: 10px;
+    background: #f3f4ff;
+    text-align: left;
+}
+
+.hidden {
+    display: none;
+}
+</style>
+</head>
+
+<body>
+
+<!-- HOME -->
+<div class="home" id="home">
+    <h1 style="color:white;">📚 Smart Study System</h1>
+    <button onclick="showBreak()">⏱ Break Reminder</button>
+    <button onclick="showPlanner()">🧠 Study Planner</button>
+</div>
+
+<!-- BREAK REMINDER (UNCHANGED) -->
+<div class="container hidden" id="breakApp">
+    <h1>📚 Study Reminder</h1>
+    <div id="mode">Study Time 📖</div>
+
+    <div class="timer" id="timer">25:00</div>
+
+    <div class="controls">
+        <button onclick="startTimer()">Start</button>
+        <button onclick="pauseTimer()">Pause</button>
+        <button onclick="resetTimer()">Reset</button>
+    </div>
+
+    <div class="settings">
+        Study: <input type="number" id="studyInput" value="25">
+        Break: <input type="number" id="breakInput" value="5">
+    </div>
+
+    <button onclick="goHome()">⬅ Back</button>
+</div>
+
+<!-- STUDY PLANNER (HORIZONTAL) -->
+<div class="container hidden" id="planner">
+    <h2>🧠 AI Study Planner</h2>
+
+    <div class="planner-grid">
+        <input type="text" id="name" placeholder="Name">
+        <input type="number" id="hours" placeholder="Study Hours">
+
+        <input type="date" id="exam" style="grid-column: span 2;">
+
+        <input id="s1" placeholder="Subject 1">
+        <input id="l1" type="number" min="1" max="5">
+
+        <input id="s2" placeholder="Subject 2">
+        <input id="l2" type="number" min="1" max="5">
+
+        <input id="s3" placeholder="Subject 3">
+        <input id="l3" type="number" min="1" max="5">
+
+        <input id="s4" placeholder="Subject 4">
+        <input id="l4" type="number" min="1" max="5">
+
+        <input id="s5" placeholder="Subject 5">
+        <input id="l5" type="number" min="1" max="5">
+
+        <button class="plan-btn" onclick="generatePlan()">Generate Plan</button>
+    </div>
+
+    <div class="section" id="plan"></div>
+    <div class="section" id="examInfo"></div>
+    <div class="section" id="recommend"></div>
+    <div class="section" id="performance"></div>
+
+    <button onclick="goHome()">⬅ Back</button>
+</div>
+
+<!-- AUDIO -->
+<audio id="alarm" src="alarmsound.mp3" loop></audio>
+
+<script>
+// NAVIGATION
+function showBreak() {
+    home.style.display = "none";
+    breakApp.classList.remove("hidden");
+}
+
+function showPlanner() {
+    home.style.display = "none";
+    planner.classList.remove("hidden");
+}
+
+function goHome() {
+    home.style.display = "block";
+    breakApp.classList.add("hidden");
+    planner.classList.add("hidden");
+}
+
+/* BREAK REMINDER LOGIC (UNCHANGED) */
+let studyTime = 25 * 60;
+let breakTime = 5 * 60;
+let time = studyTime;
+let isStudy = true;
+let timer;
+let running = false;
+
+const alarm = document.getElementById("alarm");
+
+function updateDisplay() {
+    let min = Math.floor(time / 60);
+    let sec = time % 60;
+    document.getElementById("timer").innerText =
+        `${min}:${sec < 10 ? "0" : ""}${sec}`;
+}
+
+function startTimer() {
+    alarm.pause();
+    alarm.currentTime = 0;
+
+    if (running) return;
+    running = true;
+
+    timer = setInterval(() => {
+        time--;
+        updateDisplay();
+
+        if (time <= 0) {
+            clearInterval(timer);
+            running = false;
+
+            if (isStudy) {
+                alarm.play();
+                document.getElementById("mode").innerText =
+                    "Study Over! Click Start 😴";
+                time = breakTime;
+                isStudy = false;
+            } else {
+                time = studyTime;
+                isStudy = true;
+                document.getElementById("mode").innerText = "Study Time 📚";
+                updateDisplay();
+            }
+        }
+    }, 1000);
+}
+
+function pauseTimer() {
+    clearInterval(timer);
+    running = false;
+}
+
+function resetTimer() {
+    clearInterval(timer);
+    running = false;
+
+    alarm.pause();
+    alarm.currentTime = 0;
+
+    studyTime = document.getElementById("studyInput").value * 60;
+    breakTime = document.getElementById("breakInput").value * 60;
+
+    isStudy = true;
+    time = studyTime;
+    document.getElementById("mode").innerText = "Study Time 📖";
+    updateDisplay();
+}
+
+/* STUDY PLANNER LOGIC (UNCHANGED) */
+function generatePlan() {
+    let hours = parseInt(val("hours"));
+    let examDate = document.getElementById("exam").value;
+
+    let subjects = [];
+    for (let i = 1; i <= 5; i++) {
+        let sub = val("s" + i);
+        let level = parseInt(val("l" + i));
+        if (sub && level) {
+            subjects.push({name: sub, level: level});
+        }
+    }
+
+    let totalWeight = 0;
+    subjects.forEach(s => totalWeight += (6 - s.level));
+
+    let output = "<b>📘 Daily Plan</b><br>";
+    subjects.forEach(s => {
+        let hrs = ((6 - s.level) / totalWeight * hours).toFixed(1);
+        output += s.name + ": " + hrs + " hrs<br>";
+    });
+
+    document.getElementById("plan").innerHTML = output;
+
+    let daysLeft = Math.ceil((new Date(examDate) - new Date()) / (1000*60*60*24));
+
+    document.getElementById("examInfo").innerHTML =
+        "⏳ Days Left: " + daysLeft;
+
+    let weak = subjects.reduce((a, b) => a.level < b.level ? a : b);
+
+    document.getElementById("recommend").innerHTML =
+        "Focus more on: " + weak.name;
+
+    document.getElementById("performance").innerHTML =
+        "Progress: " + Math.min(daysLeft * 2, 100) + "%";
+}
+
+function val(id) {
+    return document.getElementById(id).value;
+}
+</script>
+
+</body>
+</html>
